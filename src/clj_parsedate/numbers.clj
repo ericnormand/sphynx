@@ -7,120 +7,144 @@
                  w+
                  (mkseq [w+ (mkstr "and") w+])]))
 
-(def zero (mkret (mkstr "zero") (constantly 0)))
+(def a         (mkret (mkstr "a")         (constantly 1)))
 
-(def less-than-10-map
-  {
-   "a"            1
-   "one"          1
-   "two"          2
-   "three"        3
-   "four"         4
-   "five"         5
-   "six"          6
-   "seven"        7
-   "eight"        8
-   "nine"         9
-   })
+(def zero      (mkret (mkstr "zero")      (constantly 0)))
 
-(def less10 (mkalt (map (fn [[w n]] (mkret (mkstr w) (constantly n))) less-than-10-map)))
+(def one       (mkret (mkstr "one")       (constantly 1)))
+(def two       (mkret (mkstr "two")       (constantly 2)))
+(def three     (mkret (mkstr "three")     (constantly 3)))
+(def four      (mkret (mkstr "four")      (constantly 4)))
+(def five      (mkret (mkstr "five")      (constantly 5)))
+(def six       (mkret (mkstr "six")       (constantly 6)))
+(def seven     (mkret (mkstr "seven")     (constantly 7)))
+(def eight     (mkret (mkstr "eight")     (constantly 8)))
+(def nine      (mkret (mkstr "nine")      (constantly 9)))
+(def ten       (mkret (mkstr "ten")       (constantly 10)))
 
-(def teens-map
-  { 
-   "ten"          10
-   "eleven"       11
-   "twelve"       12
-   "thirteen"     13
-   "fourteen"     14
-   "fifteen"      15
-   "sixteen"      16
-   "seventeen"    17
-   "eighteen"     18
-   "nineteen"     19
-   "ninteen"      19 ;; Common mis-spelling
-   })
+(def eleven    (mkret (mkstr "eleven")    (constantly 11)))
+(def twelve    (mkret (mkstr "twelve")    (constantly 12)))
+(def thirteen  (mkret (mkstr "thirteen")  (constantly 13)))
+(def fourteen  (mkret (mkstr "fourteen")  (constantly 14)))
+(def fifteen   (mkret (mkstr "fifteen")   (constantly 15)))
+(def sixteen   (mkret (mkstr "sixteen")   (constantly 16)))
+(def seventeen (mkret (mkstr "seventeen") (constantly 17)))
+(def eighteen  (mkret (mkstr "eighteen")  (constantly 18)))
+(def nineteen  (mkret (mkstr "nineteen")  (constantly 19)))
 
-(def teens (mkalt (map (fn [[w n]] (mkret (mkstr w) (constantly n))) teens-map)))
+(def twenty    (mkret (mkstr "twenty")    (constantly 20)))
+(def thirty    (mkret (mkstr "thirty")    (constantly 30)))
+(def forty     (mkret (mkstr "forty")     (constantly 40)))
+(def fifty     (mkret (mkstr "fifty")     (constantly 50)))
+(def sixty     (mkret (mkstr "sixty")     (constantly 60)))
+(def seventy   (mkret (mkstr "seventy")   (constantly 70)))
+(def eighty    (mkret (mkstr "eighty")    (constantly 80)))
+(def ninety    (mkret (mkstr "ninety")    (constantly 90)))
 
-(def ordinals
-  { 
-   "first"    1
-   "second"   2
-   "third"    3
-   "fourth"   4
-   "fifth"    5
-   "sixth"    6
-   "seventh"  7
-   "eighth"   8
-   "ninth"    9
-   "tenth"    10
-   })
+(def hundred   (mkret (mkstr "hundred")   (constantly 100)))
+(def thousand  (mkret (mkstr "thousand")  (constantly 1000)))
+(def million   (mkret (mkstr "million")   (constantly 1000000)))
+(def billion   (mkret (mkstr "billion")   (constantly 1000000000)))
+(def trillion  (mkret (mkstr "trillion")  (constantly 1000000000000)))
 
+(def units (mkalt [one
+                   two
+                   three
+                   four
+                   five
+                   six
+                   seven
+                   eight
+                   nine]))
 
+(def teens (mkalt [eleven
+                   twelve
+                   thirteen
+                   fourteen
+                   fifteen
+                   sixteen
+                   seventeen
+                   eighteen
+                   nineteen]))
 
-(def tens-map
-  { 
-   "twenty"   20
-   "thirty"   30
-   "forty"    40
-   "fourty"   40 ;; Common mis-spelling
-   "fifty"    50
-   "sixty"    60
-   "seventy"  70
-   "eighty"   80
-   "ninety"   90
-   })
+(def tens (mkalt [twenty
+                  thirty
+                  forty
+                  fifty
+                  sixty
+                  seventy
+                  eighty
+                  ninety]))
 
-(def tens (mkalt (map (fn [[w n]] (mkret (mkstr w) (constantly n))) tens-map)))
-(def ten-unit (mkalt [(mkret (mkseq [(mkbind tens :ten) sep (mkbind less10 :unit)]) #(+ (:ten %) (:unit %)))
-                      tens
-                      teens
-                      less10]))
+(defn addem [x y]
+  (fn [b]
+    (+ (b x 0) (b y 0))))
 
-(def hundreds (mkalt [(mkret (mkseq [(mkbind less10 :hu) sep (mkstr "hundred") sep (mkbind ten-unit :unit)]) #(+ (:unit %) (* (:hu %) 100) ))
-                      (mkret (mkseq [(mkbind less10 :hu) sep (mkstr "hundred")]) #(* (:hu %) 100) )
-                      ten-unit]))
+(defn addmul [x y m]
+  (fn [b]
+    (+ (* m (b x 0)) (b y 0))))
 
-(def funny-thousands (mkret (mkseq [(mkbind ten-unit :u) sep (mkstr "hundred")])
-                            #(* (:u %) 100)))
+(def less100 (mkalt [(mkret (mkseq [(mkbind tens :tens) sep (mkbind units :units)]) (addem :tens :units))
+                     tens
+                     teens
+                     units]))
 
-(def thousands (mkret (mkseq [(mkbind hundreds :u) sep (mkstr "thousand")])
-                      #(* (:u %) 1000)))
+(def mult100 (mkalt [units
+                     a]))
 
-(def millions (mkret (mkseq [(mkbind hundreds :u) sep (mkstr "million")])
-                     #(* (:u %) 1000000)))
+(def less1000 (mkalt [(mkret (mkseq [(mkbind mult100 :mult100) sep (mkstr "hundred") sep (mkbind less100 :less100)])
+                             (addmul :mult100 :less100 100))
+                      (mkret (mkseq [(mkbind mult100 :mult100) sep (mkstr "hundred")])
+                             (addmul :mult100 :_ 100))
+                      less100]))
 
-(def billions (mkret (mkseq [(mkbind hundreds :u) sep (mkstr "billion")])
-                     #(* (:u %) 1000000000)))
+(def mult1000 (mkalt [less1000
+                      a]))
 
-(def trillions (mkret (mkseq [(mkbind hundreds :u) sep (mkstr "trillion")])
-                      #(* (:u %) 1000000000000)))
+(def lessmill (mkalt [(mkret (mkseq [(mkbind mult1000 :less1000x) sep (mkstr "thousand") sep (mkbind less1000 :less1000a)])
+                             (addmul :less1000x :less1000a 1000))
+                      (mkret (mkseq [(mkbind mult1000 :less1000) sep (mkstr "thousand")])
+                             (addmul :less1000x :less1000a 1000))
+                      less1000]))
 
-(def thousands-or-less (mkalt [(mkret (mkseq [(mkbind thousands :thou) sep (mkbind hundreds :hun)]) #(+ (:thou %) (:hun %)))
-                               thousands
-                               hundreds]))
+(def lessbill (mkalt [(mkret (mkseq [(mkbind mult1000 :less1000y) sep (mkstr "million") sep (mkbind lessmill :lessmill)])
+                             (addmul :less1000y :lessmill 1000000))
+                      (mkret (mkseq [(mkbind mult1000 :less1000y) sep (mkstr "million")])
+                             (addmul :less1000y :lessmill 1000000))
+                      lessmill]))
 
-(def millions-or-less (mkalt [(mkret (mkseq [(mkbind millions :mil) sep (mkbind thousands-or-less :thou)])
-                                     #(+ (:thou %) (:mil %)))
-                              millions
-                              thousands-or-less]))
+(def lesstrill (mkalt [(mkret (mkseq [(mkbind mult1000 :less1000z) sep (mkstr "billion") sep (mkbind lessbill :lessbill)])
+                             (addmul :less1000z :lessbill 1000000000))
+                      (mkret (mkseq [(mkbind mult1000 :less1000z) sep (mkstr "billion")])
+                             (addmul :less1000z :lessbill 1000000000))
+                      lessbill]))
 
-(def billions-or-less (mkalt [(mkret (mkseq [(mkbind billions :bil) sep (mkbind millions-or-less :mil)])
-                                     #(+ (:bil %) (:mil %)))
-                              billions
-                              millions-or-less]))
+(def overtrill (mkalt [(mkret (mkseq [(mkbind mult1000 :less1000d) sep (mkstr "trillion") sep (mkbind lesstrill :lesstrill)])
+                             (addmul :less1000d :lesstrill 1000000000000))
+                      (mkret (mkseq [(mkbind mult1000 :less1000d) sep (mkstr "trillion")])
+                             (addmul :less1000d :lesstrill 1000000000000))
+                      lesstrill]))
 
-(def trillions-or-less (mkalt [(mkret (mkseq [(mkbind trillions :tril) sep (mkbind billions-or-less :bil)])
-                                      #(+ (:tril %) (:bil %)))
-                               trillions
-                               billions-or-less]))
+(def ten-unit (mkret (mkseq [(mkbind tens :tens) sep (mkbind units :units)]) (addem :tens :units)))
 
-(def longnumber trillions-or-less)
+(def multhun (mkalt [teens
+                     ten-unit]))
 
-(def parse-number- (mkalt [funny-thousands
-                           zero
-                           longnumber
+(def hundreds (mkalt [(mkret (mkseq [(mkbind multhun :hmulthun) sep (mkstr "hundred") sep (mkbind less100 :hless100)])
+                             (addmul :hmulthun :hless100 100))
+                      (mkret (mkseq [(mkbind multhun :hmulthun) sep (mkstr "hundred")])
+                             (addmul :hmulthun :hless100 100))]))
+
+(def number (mkalt [zero
+                           hundreds
+                           overtrill
                            integer
-                           ]))
+                           a]))
 
-(def parse-number (mkfn (mkseq [parse-number- end])))
+(def parse-number- (mkfn (mkseq [number end])))
+
+(defn parse-number [s]
+  (-> s
+      (.trim)
+      (.toLowerCase)
+      parse-number-))

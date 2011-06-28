@@ -135,11 +135,13 @@
                       (mkret (mkseq [(mkbind multhun :hmulthun) sep (mkstr "hundred")])
                              (addmul :hmulthun :hless100 100))]))
 
+(def integer (mkret (mk1om match-digit) #(-> % :match seqtostring readint)))
+
 (def number (mkalt [zero
-                           hundreds
-                           overtrill
-                           integer
-                           a]))
+                    hundreds
+                    overtrill
+                    integer
+                    a]))
 
 (def parse-number- (mkfn (mkseq [number end])))
 

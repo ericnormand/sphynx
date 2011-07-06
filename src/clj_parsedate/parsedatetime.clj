@@ -16,18 +16,19 @@
    (.getSecondOfMinute t)
    (.getMillisOfSecond t)))
 
-(def datetime- (mkalt [(mkret (mkseq [(mkbind date :date) w+ (mkopt (mkseq [(mkstr "at") w+])) (mkbind timestr :time)]) #(combine-date-time (:date %) (:time %)))
-                       (mkret (mkseq [(mkbind timestr :time) w+ (mkbind date :date)]) #(combine-date-time (:date %) (:time %)))
-                       date
-                       (mkret (mkbind timestr :time) #(.toDateTimeToday (:time %)))]))
+(def datetime- (mkscope (mkalt [(mkret (mkseq [(mkbind date :date) w+ (mkopt (mkseq [(mkstr "at") w+])) (mkbind timestr :time)]) #(combine-date-time (:date %) (:time %)))
+                                (mkret (mkseq [(mkbind timestr :time) w+ (mkbind date :date)]) #(combine-date-time (:date %) (:time %)))
+                                date
+                                (mkret (mkbind timestr :time) #(.toDateTimeToday (:time %)))])))
 
-(def datetime (mkfn (mkseq [datetime- end])))
+(def datetime (mkfn datetime-))
 
 (defn parsedatetime
-  ([st] (parsedatetime st (DateTime.)))
+  ([st] (if (nil? st)
+          (DateTime.)
+          (parsedatetime st (DateTime.))))
   ([st dt]
      (-> st
          (.trim)
          (.toLowerCase)
-         (datetime {:now dt})
-         :r)))
+         (datetime {:now dt}))))

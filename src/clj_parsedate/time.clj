@@ -5,32 +5,60 @@
   (:use clj-peg.combinators))
 
 (def colon (mklit \:))
-(def dot (mklit \.))
+(def dot   (mklit \.))
 
-(def am (mkstr "am"))
-(def pm (mkstr "pm"))
+(def am (mkscope (mkmemo (mkstr "am"))))
+(def pm (mkscope (mkmemo (mkstr "pm"))))
 
-(def hour24 (mkseq [(mkbind integer :hour)   (mkpred #(-> % :hour (<= 24)))]))
-(def hour12 (mkseq [(mkbind integer :hour)   (mkpred #(-> % :hour (<= 12)))]))
-(def minute (mkseq [(mkbind integer :minute) (mkpred #(-> % :minute (< 60)))]))
-(def second (mkseq [(mkbind integer :second) (mkpred #(-> % :second (< 60)))]))
-(def millis  (mkseq [(mkbind integer :millis) (mkpred #(-> % :millis (< 1000)))]))
+(def hour24 (mkscope (mkmemo (mkseq [(mkbind integer :hour)   (mkpred (fn [b c] (-> b :hour (<= 24))))]))))
+(def hour12 (mkscope (mkmemo (mkseq [(mkbind integer :hour)   (mkpred (fn [b c] (-> b :hour (<= 12))))]))))
+(def minute (mkscope (mkmemo (mkseq [(mkbind integer :minute) (mkpred (fn [b c] (-> b :minute (< 60))))]))))
+(def secon  (mkscope (mkmemo (mkseq [(mkbind integer :second) (mkpred (fn [b c] (-> b :second (< 60))))]))))
+(def millis (mkscope (mkmemo (mkseq [(mkbind integer :millis) (mkpred (fn [b c] (-> b :millis (< 1000))))]))))
 
-(def timestr (mkalt [(mkret (mkseq [hour12
-                                 (mkopt (mkseq [colon minute
-                                                (mkopt (mkseq [colon second
-                                                               (mkopt (mkseq [dot millis]))]))])) w* am])
-                         #(LocalTime. (% :hour) (% :minute 0) (% :second 0) (% :millis 0)))
-                  (mkret (mkseq [hour12
-                                 (mkopt (mkseq [colon minute
-                                                (mkopt (mkseq [colon second
-                                                               (mkopt (mkseq [dot millis]))]))])) w* pm])
-                         #(LocalTime. (+ 12 (% :hour)) (% :minute 0) (% :second 0) (% :millis 0)))
-                  (mkret (mkseq [hour24
-                                 (mkopt (mkseq [colon minute
-                                                (mkopt (mkseq [colon second
-                                                               (mkopt (mkseq [dot millis]))]))]))])
-                         #(LocalTime. (% :hour) (% :minute 0) (% :second 0) (% :millis 0)))]))
+(def timestr (mkscope (mkmemo (mkalt [(mkret (mkseq [(mkbind hour12 :hour)
+                                                     (mkopt
+                                                      (mkseq
+                                                       [colon
+                                                        (mkbind minute :minute)
+                                                        (mkopt
+                                                         (mkseq
+                                                          [colon
+                                                           (mkbind secon :second)
+                                                           (mkopt
+                                                            (mkseq
+                                                             [dot
+                                                              (mkbind millis :millis)]))]))])) w* am])
+                                             (fn [b c] (LocalTime. (b :hour) (b :minute 0) (b :second 0) (b :millis 0))))
+                                      
+                                      (mkret (mkseq [(mkbind hour12 :hour)
+                                                     (mkopt
+                                                      (mkseq
+                                                       [colon
+                                                        (mkbind minute :minute)
+                                                        (mkopt
+                                                         (mkseq
+                                                          [colon
+                                                           (mkbind secon :second)
+                                                           (mkopt
+                                                            (mkseq
+                                                             [dot
+                                                              (mkbind millis :millis)]))]))])) w* pm])
+                                             (fn [b c] (LocalTime. (+ 12 (b :hour)) (b :minute 0) (b :second 0) (b :millis 0))))
+                                      (mkret (mkseq [(mkbind hour24 :hour)
+                                                     (mkopt
+                                                      (mkseq
+                                                       [colon
+                                                        (mkbind minute :minute)
+                                                        (mkopt
+                                                         (mkseq
+                                                          [colon
+                                                           (mkbind secon :second)
+                                                           (mkopt
+                                                            (mkseq
+                                                             [dot
+                                                              (mkbind millis :millis)]))]))]))])
+                                             (fn [b c] (LocalTime. (b :hour) (b :minute 0) (b :second 0) (b :millis 0))))]))))
 
 (def parsetime- (mkfn (mkseq [timestr end])))
 

@@ -6,10 +6,10 @@
   (:use clj-peg.combinators)
   (:use clj-parsedate.util))
 
-(def today     (mkscope (mkmemo (mkret (mkstr "today") (fn [b c] (:now c))))))
-(def now       (mkscope (mkmemo (mkret (mkstr "now") (fn [b c] (:now c))))))
-(def yesterday (mkscope (mkmemo (mkret (mkstr "yesterday")  (fn [b c] (-> c :now (.minusDays 1)))))))
-(def tomorrow  (mkscope (mkmemo (mkret (mkstr "tomorrow") (fn [b c] (-> c :now (.plusDays 1)))))))
+(def today     (mkscope (mkmemo (mkret (mkstr "today")     (fn [b c] (:now c))))))
+(def now       (mkscope (mkmemo (mkret (mkstr "now")       (fn [b c] (:now c))))))
+(def yesterday (mkscope (mkmemo (mkret (mkstr "yesterday") (fn [b c] (-> c :now (.minusDays 1)))))))
+(def tomorrow  (mkscope (mkmemo (mkret (mkstr "tomorrow")  (fn [b c] (-> c :now (.plusDays 1)))))))
 
 (def daymap {"monday"    1
              "tuesday"   2
@@ -19,7 +19,9 @@
              "saturday"  6
              "sunday"    7})
 
-(def dayname (mkscope (mkmemo (mkbind (mkalt (map (fn [[d n]] (mkret (mkstr d) (constantly n))) daymap)) :day))))
+(def dayname (mkscope (mkmemo (mkalt (map (fn [[d n]]
+                                            (mkret (mkstr d) (fn [b c] n)))
+                                          daymap)))))
 
 (defn lastday [dt d]
   (if (> (.getDayOfWeek dt) d)
@@ -34,22 +36,24 @@
 (def futuredayname (mkscope (mkmemo (mkret (mkseq [(mkalt [(mkstr "this")
                                                            (mkstr "next")])
                                                    w+
-                                                   dayname])
-                                           (fn [b c] (nextday (DateTime.) (:day b)))))))
+                                                   (mkbind dayname :day)])
+                                           (fn [b c]
+                                             (nextday (:now c) (:day b)))))))
 
 (def pastdayname (mkscope (mkmemo (mkret (mkseq [(mkstr "last")
                                                  w+
-                                                 dayname])
-                                         (fn [b c] (lastday (DateTime.) (:day b)))))))
+                                                 (mkbind dayname :day)])
+                                         (fn [b c]
+                                           (lastday (:now c) (:day b)))))))
 
 (def abstime (mkscope (mkmemo (mkalt [today now yesterday tomorrow futuredayname pastdayname]))))
 
 (def relative-time (mkscope (mkmemo (mkalt [(mkret (mkseq [(mkbind duration :dur) w+ (mkstr "from") w+ (mkbind abstime :abs)])
                                                    (fn [b c] (-> b :abs (.plus (:dur b)))))
                                             (mkret (mkseq [(mkbind duration :dur) w+ (mkstr "ago")])
-                                                   (fn [b c] (-> (DateTime.) (.minus (:dur b)))))
+                                                   (fn [b c] (-> (:now c) (.minus (:dur b)))))
                                             (mkret (mkseq [(mkstr "in") w+ (mkbind duration :dur)])
-                                                   (fn [b c] (-> (DateTime.) (.plus (:dur b)))))]))))
+                                                   (fn [b c] (-> (:now c) (.plus (:dur b)))))]))))
 
 (def date (mkscope (mkmemo (mkalt [relative-time
                                    abstime]))))

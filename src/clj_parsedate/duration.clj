@@ -6,10 +6,10 @@
   (:use clj-parsedate.util))
 
 (defn mkunit [name alts]
-  (mkscope (mkmemo 
-            (mkbind (mkret (mkalt (map mkstr alts))
-                           (constantly name))
-                    (fn [b c] (:unit b))))))
+  (mkscope
+   (mkmemo 
+    (mkret (mkalt (map mkstr alts))
+           (fn [b c] name)))))
 
 (def days (mkscope (mkmemo (mkunit :days ["days" "day" "d"]))))
 (def weeks (mkscope (mkmemo (mkunit :weeks ["weeks" "week" "w"]))))
@@ -33,12 +33,19 @@
         :seconds (Period. 0 0 0 0 0 0 (:n b) 0)
         :millis  (Period. 0 0 0 0 0 0 0 (:n b))))
 
-(def duration (mkret (mkseq [(mkbind number :n)
-                             w*
-                             timeunit])
-                     toduration))
+(def duration (mkscope (mkmemo (mkret (mkseq [(mkbind number :n)
+                                              w*
+                                              (mkbind timeunit :unit)])
+                                      toduration))))
 
-(def parseduration- (mkfn duration))
+(def duration* (mkscope (mkmemo (mkret (mkseq [(mkbind #'duration :d)
+                                               (mkzom (mkseq [w+ (mkbind #'duration* :d2)]))])
+                                       (fn [b c]
+                                         (if (:d2 b)
+                                           (.plus (:d b) (:d2 b))
+                                           (:d b)))))))
+
+(def parseduration- (mkfn #'duration*))
 
 (defn parseduration [st]
   (parseduration- st))

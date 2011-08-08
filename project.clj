@@ -5,4 +5,5 @@
                      [leiningen/lein-swank "[1.1.0,)"]]
 
   :dependencies [[org.clojure/clojure "[1.2.1,)"]
+                 [clj-peg "[0.4.0,)"]
                  [joda-time "1.6.2"]])

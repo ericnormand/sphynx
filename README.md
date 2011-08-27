@@ -1,13 +1,9 @@
-# clj-parsedate
-
-FIXME: write description
+# sphynx
 
 ## Usage
 
-FIXME: write
-
 ## License
 
-Copyright (C) 2011 FIXME
+Copyright (C) 2011 Eric Normand
 
 Distributed under the Eclipse Public License, the same as Clojure.
